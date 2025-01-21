@@ -217,18 +217,6 @@ export default function TodoScreen() {
         onPress={() => router.push('/loggedActivities')}
       />
 
-      <Text style={{ fontSize: 20, fontWeight: "bold", marginVertical: 16 }}>
-        Today's Todos
-      </Text>
-      <FlatList
-        data={todayTodos}
-        keyExtractor={(item) => item.id}
-        renderItem={renderTodoItem}
-      />
-
-      <Text style={{ fontSize: 18, marginVertical: 16 }}>AI Insights</Text>
-      <Text>{insights}</Text>
-
       <View style={{ marginTop: 16 }}>
         <Text style={{ fontSize: 18, marginBottom: 8 }}>Create New Todo</Text>
         <TextInput
@@ -257,6 +245,18 @@ export default function TodoScreen() {
         />
         <Button title="Add Todo" onPress={handleCreateTodo} />
       </View>
+
+      <Text style={{ fontSize: 20, fontWeight: "bold", marginVertical: 16 }}>
+        Today's Todos
+      </Text>
+      <FlatList
+        data={todayTodos}
+        keyExtractor={(item) => item.id}
+        renderItem={renderTodoItem}
+      />
+
+      <Text style={{ fontSize: 18, marginVertical: 16 }}>AI Insights</Text>
+      <Text>{insights}</Text>
 
       {/* Edit Form */}
       {renderEditForm()}
