@@ -1,4 +1,6 @@
 import { supabase } from "../utils/supabase";
+import Groq from 'groq-sdk';
+
 
 // Extend the Todo interface
 interface Todo {
@@ -10,6 +12,11 @@ interface Todo {
   user_id: string;
   sdg_impact: string[]; // New field for SDG impact
 }
+
+// Initialize Groq with API key
+const client = new Groq({
+  apiKey: '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'
+});
 
 // Create To-Do
 export async function createTodo(
@@ -102,19 +109,30 @@ export async function deleteTodo(id: string) {
   return data;
 }
 
-// Function to get AI insights
+// Function to get AI insights using Groq API
 export async function getAIInsights(todos: Todo[]): Promise<string> {
-  // Mock implementation: Replace with actual AI service call
-  const sdgCounts = todos.reduce((acc, todo) => {
-    todo.sdg_impact.forEach((sdg) => {
-      acc[sdg] = (acc[sdg] || 0) + 1;
+  try {
+    // Prepare the prompt for Groq
+    const prompt = `you are an impact measurement tool map the following activities to the UN SDGs and provide insight on once contribution to a better world in the shortest way possible:\n\n${todos
+      .map(
+        (todo) =>
+          `Title: ${todo.title}\nDescription: ${todo.description}\nSDG Impact: ${todo.sdg_impact.join(
+            ", "
+          )}\n`
+      )
+      .join("\n")}`;
+
+    // Use the Groq client to generate insights
+    const chatCompletion = await client.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: 'llama3-8b-8192', // Use the appropriate model
     });
-    return acc;
-  }, {} as Record<string, number>);
 
-  const insights = Object.entries(sdgCounts)
-    .map(([sdg, count]) => `You have impacted ${sdg} ${count} times.`)
-    .join(' ');
-
-  return `AI Insights: ${insights}`;
+    // Extract and return the insights
+    const insights = chatCompletion.choices[0].message.content?.trim();
+    return insights ? `AI Insights: ${insights}` : "No insights generated.";
+  } catch (error) {
+    console.error("Error generating AI insights:", error);
+    throw new Error("Failed to generate AI insights.");
+  }
 }

@@ -8,9 +8,12 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Modal,
+  StyleSheet,
 } from "react-native";
 import { signOut } from "../src/auth";
 import { createTodo, deleteTodo, getTodos, updateTodo, getAIInsights } from "../src/todos";
+import dayjs from 'dayjs'; // Import dayjs for date manipulation
 
 interface Todo {
   id: string;
@@ -19,6 +22,7 @@ interface Todo {
   due_date: string;
   completed: boolean;
   user_id: string;
+  sdg_impact: string[];
 }
 
 export default function TodoScreen() {
@@ -30,6 +34,8 @@ export default function TodoScreen() {
   const [dueDate, setDueDate] = useState("");
   const [insights, setInsights] = useState<string>("");
   const [sdgImpact, setSdgImpact] = useState<string[]>([]);
+  const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   // States for edit mode
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
@@ -53,6 +59,21 @@ export default function TodoScreen() {
   useEffect(() => {
     fetchTodosAndInsights();
   }, []);
+
+  // Filter todos for today's activities
+  const todayTodos = todos.filter(todo => dayjs(todo.due_date).isSame(dayjs(), 'day'));
+
+  // Handle modal open
+  const handleOpenModal = (todo: Todo) => {
+    setSelectedTodo(todo);
+    setModalVisible(true);
+  };
+
+  // Handle modal close
+  const handleCloseModal = () => {
+    setSelectedTodo(null);
+    setModalVisible(false);
+  };
 
   // Create a Todo
   const handleCreateTodo = async () => {
@@ -144,27 +165,13 @@ export default function TodoScreen() {
 
   // Each Todo item to render
   const renderTodoItem = ({ item }: { item: Todo }) => (
-    <View style={{ padding: 8, borderBottomWidth: 1, marginBottom: 4 }}>
-      <Text style={{ fontWeight: "bold" }}>{item.title}</Text>
-      <Text>{item.description}</Text>
-      <Text>Due: {item.due_date}</Text>
-      <Text>Completed: {item.completed ? "Yes" : "No"}</Text>
-
-      <View style={{ flexDirection: "row", marginTop: 4 }}>
-        {/* Edit Button */}
-        <TouchableOpacity
-          style={{ marginRight: 16 }}
-          onPress={() => handleEditPress(item)}
-        >
-          <Text style={{ color: "blue" }}>Edit</Text>
-        </TouchableOpacity>
-
-        {/* Delete button: Calls double-confirm function */}
-        <TouchableOpacity onPress={() => handleDeleteConfirm(item.id)}>
-          <Text style={{ color: "red" }}>Delete</Text>
-        </TouchableOpacity>
+    <TouchableOpacity onPress={() => handleOpenModal(item)}>
+      <View style={styles.todoItem}>
+        <Text style={styles.todoTitle}>{item.title}</Text>
+        <Text style={styles.todoDate}>Due: {item.due_date}</Text>
+        <Text style={styles.SDGImpact}>SDG Impact: {item.sdg_impact.join(', ')}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   // === Edit Form ===
@@ -205,12 +212,16 @@ export default function TodoScreen() {
   return (
     <View style={{ flex: 1, padding: 16 }}>
       <Button title="Logout" onPress={handleLogout} />
+      <Button
+        title="View Logged Activities"
+        onPress={() => router.push('/loggedActivities')}
+      />
 
       <Text style={{ fontSize: 20, fontWeight: "bold", marginVertical: 16 }}>
-        My Todos
+        Today's Todos
       </Text>
       <FlatList
-        data={todos}
+        data={todayTodos}
         keyExtractor={(item) => item.id}
         renderItem={renderTodoItem}
       />
@@ -249,6 +260,63 @@ export default function TodoScreen() {
 
       {/* Edit Form */}
       {renderEditForm()}
+
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={handleCloseModal}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            {selectedTodo && (
+              <>
+                <Text style={styles.modalTitle}>{selectedTodo.title}</Text>
+                <Text>{selectedTodo.description}</Text>
+                <Text>Due: {selectedTodo.due_date}</Text>
+                <Text>SDG Impact: {selectedTodo.sdg_impact.join(', ')}</Text>
+                <Button title="Close" onPress={handleCloseModal} />
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  todoItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+    marginBottom: 4,
+  },
+  todoTitle: {
+    fontWeight: "bold",
+  },
+  todoDate: {
+    color: '#888',
+  },
+  SDGImpact: {
+    color: '#ffcc00',
+    fontSize: 12,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    width: '80%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+});
