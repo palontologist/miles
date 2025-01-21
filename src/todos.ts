@@ -1,10 +1,22 @@
 import { supabase } from "../utils/supabase";
 
+// Extend the Todo interface
+interface Todo {
+  id: string;
+  title: string;
+  description: string;
+  due_date: string;
+  completed: boolean;
+  user_id: string;
+  sdg_impact: string[]; // New field for SDG impact
+}
+
 // Create To-Do
 export async function createTodo(
   title: string,
   description: string,
-  dueDate: string
+  dueDate: string,
+  sdgImpact: string[] // New parameter for SDG impact
 ) {
   // Fetch the current user session
   const { data: session, error: sessionError } =
@@ -28,6 +40,7 @@ export async function createTodo(
       due_date: dueDate,
       completed: false,
       user_id: userId,
+      sdg_impact: sdgImpact, // Store SDG impact
     },
   ]);
 
@@ -87,4 +100,21 @@ export async function deleteTodo(id: string) {
   }
 
   return data;
+}
+
+// Function to get AI insights
+export async function getAIInsights(todos: Todo[]): Promise<string> {
+  // Mock implementation: Replace with actual AI service call
+  const sdgCounts = todos.reduce((acc, todo) => {
+    todo.sdg_impact.forEach((sdg) => {
+      acc[sdg] = (acc[sdg] || 0) + 1;
+    });
+    return acc;
+  }, {} as Record<string, number>);
+
+  const insights = Object.entries(sdgCounts)
+    .map(([sdg, count]) => `You have impacted ${sdg} ${count} times.`)
+    .join(' ');
+
+  return `AI Insights: ${insights}`;
 }

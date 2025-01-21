@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { signOut } from "../src/auth";
-import { createTodo, deleteTodo, getTodos, updateTodo } from "../src/todos";
+import { createTodo, deleteTodo, getTodos, updateTodo, getAIInsights } from "../src/todos";
 
 interface Todo {
   id: string;
@@ -28,6 +28,8 @@ export default function TodoScreen() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [insights, setInsights] = useState<string>("");
+  const [sdgImpact, setSdgImpact] = useState<string[]>([]);
 
   // States for edit mode
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
@@ -36,26 +38,31 @@ export default function TodoScreen() {
   const [editDueDate, setEditDueDate] = useState("");
 
   // Fetch the Todo list
-  const fetchTodos = async () => {
+  const fetchTodosAndInsights = async () => {
     try {
       const data = await getTodos();
       setTodos(data || []);
+      const aiInsights = await getAIInsights(data || []);
+      setInsights(aiInsights);
     } catch (error) {
       console.error(error);
-      alert(`Failed to fetch todos: ${error}`);
+      alert(`Failed to fetch todos or insights: ${error}`);
     }
   };
 
-  useEffect(() => {}, []);
+  useEffect(() => {
+    fetchTodosAndInsights();
+  }, []);
 
   // Create a Todo
   const handleCreateTodo = async () => {
     try {
-      await createTodo(title, description, dueDate);
+      await createTodo(title, description, dueDate, sdgImpact);
       setTitle("");
       setDescription("");
       setDueDate("");
-      fetchTodos(); // Refresh the list after creation
+      setSdgImpact([]); // Reset SDG impact
+      fetchTodosAndInsights(); // Refresh the list after creation
     } catch (error) {
       console.error(error);
       alert(`Failed to create todo: ${error}`);
@@ -66,7 +73,7 @@ export default function TodoScreen() {
   const handleDeleteTodo = async (id: string) => {
     try {
       await deleteTodo(id);
-      fetchTodos();
+      fetchTodosAndInsights();
     } catch (error) {
       console.error(error);
       alert(`Failed to delete todo: ${error}`);
@@ -109,7 +116,7 @@ export default function TodoScreen() {
       });
       // After updating, exit edit mode and refresh the list
       setEditingTodo(null);
-      fetchTodos();
+      fetchTodosAndInsights();
     } catch (error) {
       console.error(error);
       alert(`Failed to update todo: ${error}`);
@@ -208,6 +215,9 @@ export default function TodoScreen() {
         renderItem={renderTodoItem}
       />
 
+      <Text style={{ fontSize: 18, marginVertical: 16 }}>AI Insights</Text>
+      <Text>{insights}</Text>
+
       <View style={{ marginTop: 16 }}>
         <Text style={{ fontSize: 18, marginBottom: 8 }}>Create New Todo</Text>
         <TextInput
@@ -227,6 +237,12 @@ export default function TodoScreen() {
           placeholder="Due Date (YYYY-MM-DD)"
           value={dueDate}
           onChangeText={setDueDate}
+        />
+        <TextInput
+          style={{ borderWidth: 1, marginBottom: 8, padding: 8 }}
+          placeholder="SDG Impact (comma-separated)"
+          value={sdgImpact.join(', ')}
+          onChangeText={(text) => setSdgImpact(text.split(',').map(s => s.trim()))}
         />
         <Button title="Add Todo" onPress={handleCreateTodo} />
       </View>
