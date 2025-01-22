@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -11,6 +11,7 @@ import {
   Modal,
   StyleSheet,
 } from "react-native";
+import { AntDesign } from "@expo/vector-icons";
 import { signOut } from "../src/auth";
 import { createTodo, deleteTodo, getTodos, updateTodo, getAIInsights } from "../src/todos";
 import dayjs from 'dayjs'; // Import dayjs for date manipulation
@@ -36,6 +37,7 @@ export default function TodoScreen() {
   const [sdgImpact, setSdgImpact] = useState<string[]>([]);
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false); // State to control form visibility
 
   // States for edit mode
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
@@ -83,6 +85,7 @@ export default function TodoScreen() {
       setDescription("");
       setDueDate("");
       setSdgImpact([]); // Reset SDG impact
+      setShowCreateForm(false); // Hide form after creation
       fetchTodosAndInsights(); // Refresh the list after creation
     } catch (error) {
       console.error(error);
@@ -209,14 +212,11 @@ export default function TodoScreen() {
     );
   };
 
-  return (
-    <View style={{ flex: 1, padding: 16 }}>
-      <Button title="Logout" onPress={handleLogout} />
-      <Button
-        title="View Logged Activities"
-        onPress={() => router.push('/loggedActivities')}
-      />
+  // === Create Form ===
+  const renderCreateForm = () => {
+    if (!showCreateForm) return null; // Do not display the form if not toggled
 
+    return (
       <View style={{ marginTop: 16 }}>
         <Text style={{ fontSize: 18, marginBottom: 8 }}>Create New Todo</Text>
         <TextInput
@@ -245,6 +245,27 @@ export default function TodoScreen() {
         />
         <Button title="Add Todo" onPress={handleCreateTodo} />
       </View>
+    );
+  };
+
+  return (
+    <View style={{ flex: 1, padding: 16 }}>
+      <Stack.Screen options={{
+        title: 'activities',
+        headerRight: () => (
+          <TouchableOpacity onPress={() => setShowCreateForm(!showCreateForm)}>
+            <AntDesign name="plus" size={24} color="black" />
+          </TouchableOpacity>
+        )
+      }}
+      />
+      <Button title="Logout" onPress={handleLogout} />
+      <Button
+        title="View Logged Activities"
+        onPress={() => router.push('/loggedActivities')}
+      />
+
+      {renderCreateForm()}
 
       <Text style={{ fontSize: 20, fontWeight: "bold", marginVertical: 16 }}>
         Today's Todos
